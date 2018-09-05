@@ -40,6 +40,7 @@
 
 
     <!-- For temporary PoC of data-api -->
+    <!-- based on https://github.com/amuniz/credentials-plugin/pull/2/files -->
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>credentials</artifactId>
