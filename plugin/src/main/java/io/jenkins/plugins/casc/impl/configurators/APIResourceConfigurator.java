@@ -2,30 +2,32 @@ package io.jenkins.plugins.casc.impl.configurators;
 
 import com.cloudbees.plugins.credentials.api.resource.APIExportable;
 import com.cloudbees.plugins.credentials.api.resource.APIResource;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import hudson.Extension;
 import io.jenkins.plugins.casc.BaseConfigurator;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorException;
+import io.jenkins.plugins.casc.SecretSource;
 import io.jenkins.plugins.casc.model.CNode;
 import io.jenkins.plugins.casc.model.Mapping;
 import io.jenkins.plugins.casc.model.Scalar;
-import io.jenkins.plugins.casc.yaml.ModelConstructor;
-import org.yaml.snakeyaml.TypeDescription;
+import io.jenkins.plugins.casc.yaml.YamlSource;
+import io.jenkins.plugins.casc.yaml.YamlUtils;
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.representer.Representer;
 
 import javax.annotation.CheckForNull;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
 
 public class APIResourceConfigurator<T> extends BaseConfigurator<T> {
 
@@ -61,6 +63,11 @@ public class APIResourceConfigurator<T> extends BaseConfigurator<T> {
     }
 
     @Override
+    protected void configure(Mapping config, T instance, boolean dryrun, ConfigurationContext context) throws ConfiguratorException {
+        // no-op, already configured before
+    }
+
+    @Override
     public Class<T> getTarget() {
         return target;
     }
@@ -68,22 +75,15 @@ public class APIResourceConfigurator<T> extends BaseConfigurator<T> {
     @CheckForNull
     @Override
     public CNode describe(T instance, ConfigurationContext context) throws Exception {
-        // get the APIResource from the instance and return the description of it (by introspection)
-        // in an APIResource all public fields have a getter, search for that
-        return null;
-    }
+        // get the Data layer resource
+        APIResource data = ((APIExportable) instance).getDataAPI();
 
-    /**
-     * Can handle the class if it is the target and it implements the APIExportable interface.
-     */
-    @Override
-    public boolean canConfigure(Class clazz) {
-        return clazz == getTarget() && isImplementingDataAPI(clazz);
-    }
+        // Serialize it as yaml (needed snakeyaml upgrade: https://github.com/FasterXML/jackson-dataformats-text/issues/81)
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        String yaml = mapper.writeValueAsString(data);
 
-    private boolean isImplementingDataAPI(Class clazz) {
-        // the model is implementing the data-api
-        return APIExportable.class.isAssignableFrom(clazz);
+        // re-parse it to Mappings
+        return YamlUtils.loadFrom(Arrays.asList(new YamlSource(new ByteArrayInputStream(yaml.getBytes()), YamlSource.READ_FROM_INPUTSTREAM)));
     }
 
     // internal, used to serialize the Mapping object
@@ -102,7 +102,37 @@ public class APIResourceConfigurator<T> extends BaseConfigurator<T> {
                 } else if (Scalar.Format.BOOLEAN.equals(scalar.getFormat())) {
                     tag = Tag.BOOL;
                 }
-                return representScalar(tag, ((Scalar) data).getValue());
+                return representScalar(tag, resolveSecret(((Scalar) data).getValue()));
+            }
+
+            private String resolveSecret(String value) {
+                String s = value;
+                Optional<String> r = SecretSource.requiresReveal(value);
+                if (r.isPresent()) {
+                    final String expr = r.get();
+                    Optional<String> reveal = Optional.empty();
+                    for (SecretSource secretSource : SecretSource.all()) {
+                        try {
+                            reveal = secretSource.reveal(expr);
+                        } catch (IOException ex) {
+                            throw new RuntimeException("Cannot reveal secret source for variable with key: " + s, ex);
+                        }
+                        if (reveal.isPresent()) {
+                            s = reveal.get();
+                            break;
+                        }
+                    }
+
+                    Optional<String> defaultValue = SecretSource.defaultValue(value);
+                    if (defaultValue.isPresent() && !reveal.isPresent()) {
+                        s = defaultValue.get();
+                    }
+
+                    if (!reveal.isPresent() && !defaultValue.isPresent()) {
+                        throw new RuntimeException("Unable to reveal variable with key: " + s);
+                    }
+                }
+                return s;
             }
         }
 
