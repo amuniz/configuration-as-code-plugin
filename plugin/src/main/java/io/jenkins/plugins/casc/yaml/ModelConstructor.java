@@ -5,6 +5,8 @@ import io.jenkins.plugins.casc.model.Scalar;
 import io.jenkins.plugins.casc.model.Sequence;
 import io.jenkins.plugins.casc.model.Source;
 import org.apache.commons.collections.map.AbstractMapDecorator;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import org.yaml.snakeyaml.constructor.Construct;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -23,7 +25,8 @@ import java.util.Map;
 /**
  * @author <a href="mailto:nicolas.deloof@gmail.com">Nicolas De Loof</a>
  */
-class ModelConstructor extends Constructor {
+@Restricted(NoExternalUse.class)
+public class ModelConstructor extends Constructor {
 
     public ModelConstructor() {
         super(Mapping.class);
