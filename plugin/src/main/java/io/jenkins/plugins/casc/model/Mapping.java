@@ -3,7 +3,6 @@ package io.jenkins.plugins.casc.model;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.Beta;
-import org.yaml.snakeyaml.nodes.MappingNode;
 
 import java.util.HashMap;
 
