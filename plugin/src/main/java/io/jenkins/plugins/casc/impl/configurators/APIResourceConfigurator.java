@@ -86,7 +86,7 @@ public class APIResourceConfigurator<T> extends BaseConfigurator<T> {
         return YamlUtils.loadFrom(Arrays.asList(new YamlSource(new ByteArrayInputStream(yaml.getBytes()), YamlSource.READ_FROM_INPUTSTREAM)));
     }
 
-    // internal, used to serialize the Mapping object
+    // internal, used to serialize the Mapping object and perform variable substitution (from ${..})
     private class ScalarRepresenter extends Representer {
 
         private class ScalarRepresent implements Represent {
