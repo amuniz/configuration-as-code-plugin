@@ -20,7 +20,15 @@
     <dependency>
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
-      <version>1.21</version>
+      <version>1.23</version>
+    </dependency>
+
+    <!-- For temporary PoC of data-api -->
+    <!-- based on https://github.com/amuniz/credentials-plugin/pull/2/files -->
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>credentials</artifactId>
+      <version>2.1.17-SNAPSHOT</version>
     </dependency>
 
     <!--TODO: This should be in a seperate plugin at some point -->

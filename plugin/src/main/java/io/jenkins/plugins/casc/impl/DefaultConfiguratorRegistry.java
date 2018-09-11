@@ -1,5 +1,6 @@
 package io.jenkins.plugins.casc.impl;
 
+import com.cloudbees.plugins.credentials.api.resource.APIExportable;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -12,6 +13,7 @@ import io.jenkins.plugins.casc.Configurator;
 import io.jenkins.plugins.casc.ConfiguratorException;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.RootElementConfigurator;
+import io.jenkins.plugins.casc.impl.configurators.APIResourceConfigurator;
 import io.jenkins.plugins.casc.impl.configurators.ConfigurableConfigurator;
 import io.jenkins.plugins.casc.impl.configurators.DataBoundConfigurator;
 import io.jenkins.plugins.casc.impl.configurators.DescriptorConfigurator;
@@ -127,6 +129,10 @@ public class DefaultConfiguratorRegistry implements ConfiguratorRegistry {
                 }
                 return lookup(actualType);
             }
+        }
+
+        if (APIExportable.class.isAssignableFrom(clazz)) {
+            return new APIResourceConfigurator(clazz);
         }
 
         if (Configurable.class.isAssignableFrom(clazz)) {
